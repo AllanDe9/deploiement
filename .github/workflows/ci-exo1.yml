@@ -1,0 +1,30 @@
+name: ci-exo1
+
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Write summary
+        if: always()
+        run: |
+          echo "## CI result" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Job status: ${{ job.status }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit ref: ${{ github.ref }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit SHA: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
