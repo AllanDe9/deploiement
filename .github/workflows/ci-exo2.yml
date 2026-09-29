@@ -1,6 +1,6 @@
 name: ci-exo2
 
-on: workflow_dispatch
+on: push
 
 jobs:
   build:
