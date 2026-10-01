@@ -5,7 +5,10 @@ on:
     inputs:
       environment:
         description: Environment cible
-        type: environment
+        type: choice
+        options:
+          - staging
+          - production
         required: true
 
 permissions:
