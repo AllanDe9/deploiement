@@ -1,0 +1,99 @@
+name: ci-exo3
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment cible
+        type: environment
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.18.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload application artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: application
+          path: dist/
+          if-no-files-found: error
+
+  test:
+    needs: build
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [20, 22]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download application artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: application
+          path: dist/
+
+      - name: Run tests
+        run: npm test
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Download application artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: application
+          path: dist/
+
+      - name: Deploy
+        run: |
+          echo "Deploying to ${{ inputs.environment }}"
+          echo "API_URL=${{ vars.API_URL }}"
+          ls -R dist
+
+      - name: Write summary
+        run: |
+          echo "## Deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Target: ${{ inputs.environment }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- URL: ${{ vars.API_URL }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: ${{ github.sha }}" >> "$GITHUB_STEP_SUMMARY"
